@@ -26,7 +26,10 @@ function freshTabData(url) {
   return {
     pageUrl: url,
     pageDomain: getRegistrableDomain(hostname),
-    loadStartedAt: Date.now()
+    loadStartedAt: Date.now(),
+    thirdPartyDomains: new Set(),
+    requestLog: [],
+    cookiesInjectedCount: 0
   };
 }
 
@@ -41,13 +44,42 @@ browser.webNavigation.onBeforeNavigate.addListener((details) => {
   }
 });
 
+browser.webRequest.onBeforeRequest.addListener(
+  (details) => {
+    if (details.tabId < 0) return;
+    const tab = ensureTab(details.tabId);
+    const reqDomain = getRegistrableDomain(getHostname(details.url));
+    const thirdParty = tab.pageDomain && reqDomain && reqDomain !== tab.pageDomain;
+    if (thirdParty) tab.thirdPartyDomains.add(reqDomain);
+    tab.requestLog.push({ url: details.url, domain: reqDomain, thirdParty, timestamp: Date.now() });
+    if (tab.requestLog.length > 2000) tab.requestLog.shift();
+  },
+  { urls: ["<all_urls>"] },
+  []
+);
+
+browser.webRequest.onHeadersReceived.addListener(
+  (details) => {
+    if (details.tabId < 0) return;
+    const tab = ensureTab(details.tabId);
+    const setCookieHeaders = (details.responseHeaders || []).filter(
+      h => h.name.toLowerCase() === "set-cookie"
+    );
+    tab.cookiesInjectedCount += setCookieHeaders.length;
+  },
+  { urls: ["<all_urls>"] },
+  ["responseHeaders"]
+);
+
 async function buildReport(tabId) {
   const tab = tabStore[tabId];
   if (!tab) return null;
   return {
     pageUrl: tab.pageUrl,
     pageDomain: tab.pageDomain,
-    status: "Deteccao ainda nao implementada"
+    thirdPartyDomains: Array.from(tab.thirdPartyDomains),
+    requestCount: tab.requestLog.length,
+    cookiesInjectedCount: tab.cookiesInjectedCount
   };
 }
 
