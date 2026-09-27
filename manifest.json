@@ -1,0 +1,51 @@
+{
+  "manifest_version": 2,
+  "name": "Privacy Guard - Detecção e Bloqueio de Rastreadores",
+  "version": "0.1.0",
+  "description": "Detecta conexões de terceiros, cookies, armazenamento local, cookie sync, canvas fingerprinting e indicadores de hijacking. Gera pontuação de privacidade por página.",
+
+  "permissions": [
+    "webRequest",
+    "webRequestBlocking",
+    "webNavigation",
+    "cookies",
+    "storage",
+    "tabs",
+    "<all_urls>"
+  ],
+
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": true
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content_scripts/content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+
+  "web_accessible_resources": [
+    "content_scripts/inject.js"
+  ],
+
+  "browser_action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Privacy Guard"
+  },
+
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "privacy-guard@disciplina.seg-web",
+      "strict_min_version": "102.0"
+    }
+  }
+}
