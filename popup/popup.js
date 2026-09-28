@@ -16,25 +16,32 @@ async function loadReport() {
   const report = await browser.runtime.sendMessage({ type: "GET_REPORT", tabId: tabId });
   const domainEl = document.getElementById("page-domain");
   const sections = document.getElementById("sections");
-  if (!report) {
-    domainEl.textContent = "Sem dados ainda — recarregue a página.";
-    return;
-  }
+  if (!report) { domainEl.textContent = "Sem dados ainda — recarregue a página."; return; }
   domainEl.textContent = report.pageDomain || report.pageUrl;
+
+  const cookiesThirdCount = report.cookies.thirdParty.session.length + report.cookies.thirdParty.persistent.length;
+  const cookiesFirstCount = report.cookies.firstParty.session.length + report.cookies.firstParty.persistent.length;
+
   sections.innerHTML = `
     <div class="card">
       <h3>Domínios de terceiros conectados (${report.thirdPartyDomains.length})</h3>
       ${renderList(report.thirdPartyDomains, "nenhum detectado")}
     </div>
     <div class="card">
-      <h3>Cookies injetados no carregamento</h3>
-      <div>${report.cookiesInjectedCount} cookie(s) (Set-Cookie observados)</div>
+      <h3>Cookies</h3>
+      <div>1a parte: ${cookiesFirstCount} (sessão: ${report.cookies.firstParty.session.length}, persistentes: ${report.cookies.firstParty.persistent.length})</div>
+      <div>3a parte: ${cookiesThirdCount} (sessão: ${report.cookies.thirdParty.session.length}, persistentes: ${report.cookies.thirdParty.persistent.length})</div>
     </div>
     <div class="card">
       <h3>Armazenamento local (HTML5)</h3>
       <div>localStorage: ${report.storageInfo.localStorage} chave(s)</div>
       <div>sessionStorage: ${report.storageInfo.sessionStorage} chave(s)</div>
-      <div>IndexedDB: ${report.storageInfo.indexedDB.length} banco(s)${report.storageInfo.indexedDB.length ? " — " + report.storageInfo.indexedDB.join(", ") : ""}</div>
+      <div>IndexedDB: ${report.storageInfo.indexedDB.length} banco(s)</div>
+    </div>
+    <div class="card">
+      <h3>Cookie sync / bounce tracking</h3>
+      <div>Candidatos a cookie sync: ${report.cookieSyncCandidates.length}</div>
+      <div>Redirecionamentos cross-site: ${report.redirectChains.filter(r => r.crossSite).length}</div>
     </div>
   `;
 }
