@@ -29,7 +29,12 @@ async function loadReport() {
     <div class="card">
       <h3>Cookies injetados no carregamento</h3>
       <div>${report.cookiesInjectedCount} cookie(s) (Set-Cookie observados)</div>
-      <div class="muted">Diferenciação 1a/3a parte e sessão/persistente chega na próxima etapa.</div>
+    </div>
+    <div class="card">
+      <h3>Armazenamento local (HTML5)</h3>
+      <div>localStorage: ${report.storageInfo.localStorage} chave(s)</div>
+      <div>sessionStorage: ${report.storageInfo.sessionStorage} chave(s)</div>
+      <div>IndexedDB: ${report.storageInfo.indexedDB.length} banco(s)${report.storageInfo.indexedDB.length ? " — " + report.storageInfo.indexedDB.join(", ") : ""}</div>
     </div>
   `;
 }

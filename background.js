@@ -29,7 +29,8 @@ function freshTabData(url) {
     loadStartedAt: Date.now(),
     thirdPartyDomains: new Set(),
     requestLog: [],
-    cookiesInjectedCount: 0
+    cookiesInjectedCount: 0,
+    storageInfo: { localStorage: 0, sessionStorage: 0, indexedDB: [] }
   };
 }
 
@@ -39,9 +40,7 @@ function ensureTab(tabId, url) {
 }
 
 browser.webNavigation.onBeforeNavigate.addListener((details) => {
-  if (details.frameId === 0) {
-    tabStore[details.tabId] = freshTabData(details.url);
-  }
+  if (details.frameId === 0) tabStore[details.tabId] = freshTabData(details.url);
 });
 
 browser.webRequest.onBeforeRequest.addListener(
@@ -71,6 +70,18 @@ browser.webRequest.onHeadersReceived.addListener(
   ["responseHeaders"]
 );
 
+browser.runtime.onMessage.addListener((msg, sender) => {
+  const tabId = sender.tab ? sender.tab.id : msg.tabId;
+  if (tabId === null || tabId === undefined) return;
+
+  if (msg.type === "GET_REPORT") return Promise.resolve(buildReport(tabId));
+
+  const tab = ensureTab(tabId);
+  if (msg.type === "STORAGE_INFO") {
+    tab.storageInfo = msg.data;
+  }
+});
+
 async function buildReport(tabId) {
   const tab = tabStore[tabId];
   if (!tab) return null;
@@ -79,12 +90,7 @@ async function buildReport(tabId) {
     pageDomain: tab.pageDomain,
     thirdPartyDomains: Array.from(tab.thirdPartyDomains),
     requestCount: tab.requestLog.length,
-    cookiesInjectedCount: tab.cookiesInjectedCount
+    cookiesInjectedCount: tab.cookiesInjectedCount,
+    storageInfo: tab.storageInfo
   };
 }
-
-browser.runtime.onMessage.addListener((msg, sender) => {
-  const tabId = sender.tab ? sender.tab.id : msg.tabId;
-  if (tabId === null || tabId === undefined) return;
-  if (msg.type === "GET_REPORT") return Promise.resolve(buildReport(tabId));
-});
