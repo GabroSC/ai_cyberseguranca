@@ -23,25 +23,22 @@ async function loadReport() {
   const cookiesFirstCount = report.cookies.firstParty.session.length + report.cookies.firstParty.persistent.length;
 
   sections.innerHTML = `
-    <div class="card">
-      <h3>Domínios de terceiros conectados (${report.thirdPartyDomains.length})</h3>
-      ${renderList(report.thirdPartyDomains, "nenhum detectado")}
-    </div>
-    <div class="card">
-      <h3>Cookies</h3>
+    <div class="card"><h3>Domínios de terceiros conectados (${report.thirdPartyDomains.length})</h3>${renderList(report.thirdPartyDomains, "nenhum detectado")}</div>
+    <div class="card"><h3>Cookies</h3>
       <div>1a parte: ${cookiesFirstCount} (sessão: ${report.cookies.firstParty.session.length}, persistentes: ${report.cookies.firstParty.persistent.length})</div>
       <div>3a parte: ${cookiesThirdCount} (sessão: ${report.cookies.thirdParty.session.length}, persistentes: ${report.cookies.thirdParty.persistent.length})</div>
     </div>
-    <div class="card">
-      <h3>Armazenamento local (HTML5)</h3>
+    <div class="card"><h3>Armazenamento local (HTML5)</h3>
       <div>localStorage: ${report.storageInfo.localStorage} chave(s)</div>
       <div>sessionStorage: ${report.storageInfo.sessionStorage} chave(s)</div>
       <div>IndexedDB: ${report.storageInfo.indexedDB.length} banco(s)</div>
     </div>
-    <div class="card">
-      <h3>Cookie sync / bounce tracking</h3>
+    <div class="card"><h3>Cookie sync / bounce tracking</h3>
       <div>Candidatos a cookie sync: ${report.cookieSyncCandidates.length}</div>
       <div>Redirecionamentos cross-site: ${report.redirectChains.filter(r => r.crossSite).length}</div>
+    </div>
+    <div class="card"><h3>Canvas fingerprinting (${report.canvasFingerprint.length} chamada(s))</h3>
+      ${renderList(report.canvasFingerprint.map(c => c.api), "nenhuma chamada suspeita")}
     </div>
   `;
 }

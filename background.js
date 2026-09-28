@@ -33,6 +33,7 @@ function freshTabData(url) {
     redirectChains: [],
     cookieSyncCandidates: [],
     tokensSeen: {},
+    canvasFingerprint: [],
     storageInfo: { localStorage: 0, sessionStorage: 0, indexedDB: [] }
   };
 }
@@ -52,9 +53,7 @@ function extractTokens(url) {
     const u = new URL(url);
     const tokens = [];
     for (const [key, val] of u.searchParams.entries()) {
-      if (val && val.length >= TOKEN_MIN_LEN && /^[A-Za-z0-9_\-\.]+$/.test(val)) {
-        tokens.push(val);
-      }
+      if (val && val.length >= TOKEN_MIN_LEN && /^[A-Za-z0-9_\-\.]+$/.test(val)) tokens.push(val);
     }
     return tokens;
   } catch (e) { return []; }
@@ -76,16 +75,11 @@ browser.webRequest.onBeforeRequest.addListener(
       tab.tokensSeen[tok].push({ domain: reqDomain, url: details.url });
       const domainsForToken = new Set(tab.tokensSeen[tok].map(x => x.domain));
       if (domainsForToken.size >= 2 && thirdParty) {
-        tab.cookieSyncCandidates.push({
-          token: tok.substring(0, 12) + "...",
-          domains: Array.from(domainsForToken),
-          exampleUrl: details.url
-        });
+        tab.cookieSyncCandidates.push({ token: tok.substring(0, 12) + "...", domains: Array.from(domainsForToken), exampleUrl: details.url });
       }
     }
   },
-  { urls: ["<all_urls>"] },
-  []
+  { urls: ["<all_urls>"] }, []
 );
 
 browser.webRequest.onBeforeRedirect.addListener(
@@ -94,13 +88,7 @@ browser.webRequest.onBeforeRedirect.addListener(
     const tab = ensureTab(details.tabId);
     const fromDomain = getRegistrableDomain(getHostname(details.url));
     const toDomain = getRegistrableDomain(getHostname(details.redirectUrl));
-    tab.redirectChains.push({
-      from: details.url, fromDomain,
-      to: details.redirectUrl, toDomain,
-      statusCode: details.statusCode,
-      timestamp: Date.now(),
-      crossSite: fromDomain !== toDomain
-    });
+    tab.redirectChains.push({ from: details.url, fromDomain, to: details.redirectUrl, toDomain, statusCode: details.statusCode, timestamp: Date.now(), crossSite: fromDomain !== toDomain });
   },
   { urls: ["<all_urls>"] }
 );
@@ -109,13 +97,10 @@ browser.webRequest.onHeadersReceived.addListener(
   (details) => {
     if (details.tabId < 0) return;
     const tab = ensureTab(details.tabId);
-    const setCookieHeaders = (details.responseHeaders || []).filter(
-      h => h.name.toLowerCase() === "set-cookie"
-    );
+    const setCookieHeaders = (details.responseHeaders || []).filter(h => h.name.toLowerCase() === "set-cookie");
     tab.cookiesInjectedCount += setCookieHeaders.length;
   },
-  { urls: ["<all_urls>"] },
-  ["responseHeaders"]
+  { urls: ["<all_urls>"] }, ["responseHeaders"]
 );
 
 async function collectCookiesForTab(tabId) {
@@ -130,31 +115,30 @@ async function collectCookiesForTab(tabId) {
     const bucket = domain === tab.pageDomain ? result.firstParty : result.thirdParty;
     for (const c of cookies) {
       const entry = { name: c.name, domain: c.domain };
-      if (c.session || !c.expirationDate) bucket.session.push(entry);
-      else bucket.persistent.push(entry);
+      if (c.session || !c.expirationDate) bucket.session.push(entry); else bucket.persistent.push(entry);
     }
   }
   return result;
 }
-
 function dedupeCookieSync(list) {
   const seen = new Set();
   return list.filter(c => {
     const key = c.token + c.domains.sort().join(",");
     if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
+    seen.add(key); return true;
   });
 }
 
 browser.runtime.onMessage.addListener((msg, sender) => {
   const tabId = sender.tab ? sender.tab.id : msg.tabId;
   if (tabId === null || tabId === undefined) return;
-
   if (msg.type === "GET_REPORT") return Promise.resolve(buildReport(tabId));
 
   const tab = ensureTab(tabId);
   if (msg.type === "STORAGE_INFO") tab.storageInfo = msg.data;
+  if (msg.type === "CANVAS_FINGERPRINT") {
+    tab.canvasFingerprint.push({ api: msg.api, frameUrl: sender.url, stackHint: msg.stackHint, timestamp: Date.now() });
+  }
 });
 
 async function buildReport(tabId) {
@@ -170,6 +154,7 @@ async function buildReport(tabId) {
     cookies,
     redirectChains: tab.redirectChains,
     cookieSyncCandidates: dedupeCookieSync(tab.cookieSyncCandidates),
+    canvasFingerprint: tab.canvasFingerprint,
     storageInfo: tab.storageInfo
   };
 }
