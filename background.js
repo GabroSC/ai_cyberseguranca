@@ -34,15 +34,16 @@ function freshTabData(url) {
     cookieSyncCandidates: [],
     tokensSeen: {},
     canvasFingerprint: [],
-    storageInfo: { localStorage: 0, sessionStorage: 0, indexedDB: [] }
+    hijackIndicators: [],
+    storageInfo: { localStorage: 0, sessionStorage: 0, indexedDB: [] },
+    globalsBaseline: null,
+    globalsAdded: []
   };
 }
-
 function ensureTab(tabId, url) {
   if (!tabStore[tabId]) tabStore[tabId] = freshTabData(url || "");
   return tabStore[tabId];
 }
-
 browser.webNavigation.onBeforeNavigate.addListener((details) => {
   if (details.frameId === 0) tabStore[details.tabId] = freshTabData(details.url);
 });
@@ -68,7 +69,6 @@ browser.webRequest.onBeforeRequest.addListener(
     if (thirdParty) tab.thirdPartyDomains.add(reqDomain);
     tab.requestLog.push({ url: details.url, domain: reqDomain, thirdParty, timestamp: Date.now() });
     if (tab.requestLog.length > 2000) tab.requestLog.shift();
-
     const tokens = extractTokens(details.url);
     for (const tok of tokens) {
       if (!tab.tokensSeen[tok]) tab.tokensSeen[tok] = [];
@@ -78,8 +78,7 @@ browser.webRequest.onBeforeRequest.addListener(
         tab.cookieSyncCandidates.push({ token: tok.substring(0, 12) + "...", domains: Array.from(domainsForToken), exampleUrl: details.url });
       }
     }
-  },
-  { urls: ["<all_urls>"] }, []
+  }, { urls: ["<all_urls>"] }, []
 );
 
 browser.webRequest.onBeforeRedirect.addListener(
@@ -89,8 +88,7 @@ browser.webRequest.onBeforeRedirect.addListener(
     const fromDomain = getRegistrableDomain(getHostname(details.url));
     const toDomain = getRegistrableDomain(getHostname(details.redirectUrl));
     tab.redirectChains.push({ from: details.url, fromDomain, to: details.redirectUrl, toDomain, statusCode: details.statusCode, timestamp: Date.now(), crossSite: fromDomain !== toDomain });
-  },
-  { urls: ["<all_urls>"] }
+  }, { urls: ["<all_urls>"] }
 );
 
 browser.webRequest.onHeadersReceived.addListener(
@@ -99,8 +97,7 @@ browser.webRequest.onHeadersReceived.addListener(
     const tab = ensureTab(details.tabId);
     const setCookieHeaders = (details.responseHeaders || []).filter(h => h.name.toLowerCase() === "set-cookie");
     tab.cookiesInjectedCount += setCookieHeaders.length;
-  },
-  { urls: ["<all_urls>"] }, ["responseHeaders"]
+  }, { urls: ["<all_urls>"] }, ["responseHeaders"]
 );
 
 async function collectCookiesForTab(tabId) {
@@ -129,6 +126,7 @@ function dedupeCookieSync(list) {
   });
 }
 
+// ---- NOVO: mensagens de hijacking ----
 browser.runtime.onMessage.addListener((msg, sender) => {
   const tabId = sender.tab ? sender.tab.id : msg.tabId;
   if (tabId === null || tabId === undefined) return;
@@ -139,15 +137,63 @@ browser.runtime.onMessage.addListener((msg, sender) => {
   if (msg.type === "CANVAS_FINGERPRINT") {
     tab.canvasFingerprint.push({ api: msg.api, frameUrl: sender.url, stackHint: msg.stackHint, timestamp: Date.now() });
   }
+  if (msg.type === "WEBSOCKET_THIRD_PARTY") {
+    tab.hijackIndicators.push({ kind: "websocket-third-party", detail: `WebSocket persistente para domínio de terceiro: ${msg.domain}`, url: msg.url, timestamp: Date.now() });
+  }
+  if (msg.type === "GLOBALS_REPORT") {
+    if (!tab.globalsBaseline) {
+      tab.globalsBaseline = msg.globals;
+    } else {
+      const added = msg.globals.filter(g => !tab.globalsBaseline.includes(g));
+      if (added.length) {
+        tab.globalsAdded = Array.from(new Set([...tab.globalsAdded, ...added]));
+        tab.hijackIndicators.push({ kind: "global-object-injection", detail: `Novas propriedades globais detectadas: ${added.join(", ")}`, timestamp: Date.now() });
+      }
+    }
+  }
 });
+
+// ---- NOVO: pontuação de privacidade (metodologia explícita) ----
+/*
+ *  -2   por domínio de terceiro conectado (máx. -30)
+ *  -1   por cookie de terceiro persistente (máx. -20)
+ *  -0.5 por cookie de terceiro de sessão (máx. -10)
+ *  -5   por candidato a cookie sync (máx. -20)
+ *  -8   por chamada de canvas fingerprinting (máx. -24)
+ *  -6   por indicador de hijacking/hook (máx. -24)
+ *  -3   por redirecionamento cross-site (máx. -15)
+ *  Score final = max(0, 100 - soma). Ver options/options.html p/ detalhes.
+ */
+function computeScore(report) {
+  let penalty = 0;
+  penalty += Math.min(report.thirdPartyDomains.length * 2, 30);
+  penalty += Math.min(report.cookies.thirdParty.persistent.length * 1, 20);
+  penalty += Math.min(report.cookies.thirdParty.session.length * 0.5, 10);
+  penalty += Math.min(report.cookieSyncCandidates.length * 5, 20);
+  penalty += Math.min(report.canvasFingerprint.length * 8, 24);
+  penalty += Math.min(report.hijackIndicators.length * 6, 24);
+  const crossSiteRedirects = report.redirectChains.filter(r => r.crossSite).length;
+  penalty += Math.min(crossSiteRedirects * 3, 15);
+  const score = Math.max(0, Math.round(100 - penalty));
+  let classification = "Baixo risco";
+  if (score < 50) classification = "Alto risco"; else if (score < 80) classification = "Risco moderado";
+  return { score, classification, penaltyBreakdown: {
+    thirdPartyDomains: Math.min(report.thirdPartyDomains.length * 2, 30),
+    persistentThirdPartyCookies: Math.min(report.cookies.thirdParty.persistent.length * 1, 20),
+    sessionThirdPartyCookies: Math.min(report.cookies.thirdParty.session.length * 0.5, 10),
+    cookieSync: Math.min(report.cookieSyncCandidates.length * 5, 20),
+    canvasFingerprint: Math.min(report.canvasFingerprint.length * 8, 24),
+    hijackIndicators: Math.min(report.hijackIndicators.length * 6, 24),
+    crossSiteRedirects: Math.min(crossSiteRedirects * 3, 15)
+  }};
+}
 
 async function buildReport(tabId) {
   const tab = tabStore[tabId];
   if (!tab) return null;
   const cookies = await collectCookiesForTab(tabId);
-  return {
-    pageUrl: tab.pageUrl,
-    pageDomain: tab.pageDomain,
+  const report = {
+    pageUrl: tab.pageUrl, pageDomain: tab.pageDomain,
     thirdPartyDomains: Array.from(tab.thirdPartyDomains),
     requestCount: tab.requestLog.length,
     cookiesInjectedCount: tab.cookiesInjectedCount,
@@ -155,6 +201,12 @@ async function buildReport(tabId) {
     redirectChains: tab.redirectChains,
     cookieSyncCandidates: dedupeCookieSync(tab.cookieSyncCandidates),
     canvasFingerprint: tab.canvasFingerprint,
+    hijackIndicators: tab.hijackIndicators,
     storageInfo: tab.storageInfo
   };
+  const scoring = computeScore(report);
+  report.score = scoring.score;
+  report.classification = scoring.classification;
+  report.penaltyBreakdown = scoring.penaltyBreakdown;
+  return report;
 }

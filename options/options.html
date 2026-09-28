@@ -1,9 +1,47 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head><meta charset="UTF-8"><title>Privacy Guard — Metodologia</title></head>
+<head>
+<meta charset="UTF-8">
+<title>Privacy Guard — Metodologia</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; max-width: 720px; margin: 40px auto; line-height: 1.5; color: #222; }
+  h1 { font-size: 22px; }
+  h2 { font-size: 16px; margin-top: 28px; }
+  table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+  td, th { border: 1px solid #ddd; padding: 6px 10px; text-align: left; font-size: 13px; }
+  th { background: #f4f4f4; }
+  code { background: #f0f0f0; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
 <body>
-  <h1>Privacy Guard</h1>
-  <p>A metodologia de pontuação de privacidade será documentada aqui quando
-  a etapa de scoring (Conceito A) for implementada.</p>
+  <h1>Privacy Guard — Metodologia de Pontuação de Privacidade</h1>
+  <p>O score começa em <strong>100</strong> e recebe penalidades por técnica de rastreamento
+  detectada. O valor final é <code>max(0, 100 − Σ penalidades)</code>.</p>
+
+  <table>
+    <tr><th>Critério</th><th>Peso</th><th>Teto</th><th>Justificativa</th></tr>
+    <tr><td>Domínio de terceiro conectado</td><td>-2 / domínio</td><td>-30</td><td>Cada nova conexão amplia a superfície de coleta de dados, mas por si só não é maliciosa (ex.: CDNs).</td></tr>
+    <tr><td>Cookie de terceiro persistente</td><td>-1 / cookie</td><td>-20</td><td>Permite reidentificação entre sessões.</td></tr>
+    <tr><td>Cookie de terceiro de sessão</td><td>-0,5 / cookie</td><td>-10</td><td>Risco menor por expirar com a sessão.</td></tr>
+    <tr><td>Candidato a cookie sync</td><td>-5 / caso</td><td>-20</td><td>Sincronização de identificadores entre rastreadores é uma técnica deliberada de union de perfis.</td></tr>
+    <tr><td>Chamada de canvas fingerprinting</td><td>-8 / chamada</td><td>-24</td><td>Técnica de identificação persistente mesmo sem cookies; peso alto por ser difícil de burlar pelo usuário.</td></tr>
+    <tr><td>Indicador de hijacking/hook</td><td>-6 / indicador</td><td>-24</td><td>Potencial comprometimento ativo do navegador, risco mais grave que mera coleta passiva.</td></tr>
+    <tr><td>Redirecionamento cross-site (bounce tracking)</td><td>-3 / caso</td><td>-15</td><td>Usado para contornar bloqueio de cookies de terceiro.</td></tr>
+  </table>
+
+  <h2>Faixas de classificação</h2>
+  <table>
+    <tr><th>Score</th><th>Classificação</th></tr>
+    <tr><td>80–100</td><td>Baixo risco</td></tr>
+    <tr><td>50–79</td><td>Risco moderado</td></tr>
+    <tr><td>0–49</td><td>Alto risco</td></tr>
+  </table>
+
+  <h2>Limitações conhecidas (documentar no relatório)</h2>
+  <ul>
+    <li>eTLD+1 calculado com lista compacta de sufixos, não a Public Suffix List completa — validar manualmente domínios divergentes.</li>
+    <li>Cookie sync é heurístico (token ≥16 chars repetido entre domínios distintos) — pode haver falsos positivos com IDs de sessão legítimos compartilhados via CDN.</li>
+    <li>Detecção de hijacking via diff de globais do <code>window</code> gera falsos positivos com extensões de terceiros instaladas no mesmo navegador — recomenda-se testar em perfil limpo do Firefox.</li>
+  </ul>
 </body>
 </html>
