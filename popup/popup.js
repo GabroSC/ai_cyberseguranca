@@ -46,7 +46,7 @@ function appendLine(parent, text, className) {
 function createList(items, emptyText) {
   if (!items || items.length === 0) return element("span", "muted", emptyText);
   const list = document.createElement("ul");
-  items.slice(0, 15).forEach(item => list.appendChild(element("li", "", item)));
+  items.forEach(item => list.appendChild(element("li", "", item)));
   return list;
 }
 

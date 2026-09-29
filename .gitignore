@@ -1,0 +1,4 @@
+# HARs brutos podem conter cookies, tokens e corpos de requisição.
+har/*.har
+web-ext-artifacts/
+

@@ -1,0 +1,121 @@
+{
+  "page": "request-blocking",
+  "results": [
+    {
+      "id": "script",
+      "category": "html",
+      "status": "loaded"
+    },
+    {
+      "id": "style",
+      "category": "html",
+      "status": "loaded"
+    },
+    {
+      "id": "img",
+      "category": "html",
+      "status": "loaded"
+    },
+    {
+      "id": "picture",
+      "category": "html",
+      "status": "loaded"
+    },
+    {
+      "id": "object",
+      "category": "html",
+      "status": "loaded"
+    },
+    {
+      "id": "audio",
+      "category": "html",
+      "status": "loaded"
+    },
+    {
+      "id": "video",
+      "category": "html",
+      "status": "loaded"
+    },
+    {
+      "id": "iframe",
+      "category": "html",
+      "status": "loaded"
+    },
+    {
+      "id": "import",
+      "category": "css",
+      "status": "loaded"
+    },
+    {
+      "id": "font",
+      "category": "css",
+      "status": "loaded"
+    },
+    {
+      "id": "background",
+      "category": "css",
+      "status": "loaded"
+    },
+    {
+      "id": "websocket",
+      "category": "js",
+      "status": "failed"
+    },
+    {
+      "id": "server-sent-events",
+      "category": "js",
+      "status": "loaded"
+    },
+    {
+      "id": "fetch",
+      "category": "js",
+      "status": "loaded"
+    },
+    {
+      "id": "xmlhttprequest",
+      "category": "js",
+      "status": "loaded"
+    },
+    {
+      "id": "sendBeacon",
+      "category": "js",
+      "status": "failed"
+    },
+    {
+      "id": "favicon",
+      "category": "other",
+      "status": "loaded"
+    },
+    {
+      "id": "iframe-fetch",
+      "category": "other",
+      "status": "loaded"
+    },
+    {
+      "id": "iframe-fetch-depth-2",
+      "category": "other",
+      "status": "loaded"
+    },
+    {
+      "id": "webworker-fetch",
+      "category": "other",
+      "status": "loaded"
+    },
+    {
+      "id": "serviceworker-fetch",
+      "category": "other",
+      "status": "loaded"
+    },
+    {
+      "id": "csp-report",
+      "category": "other",
+      "status": "failed"
+    },
+    {
+      "id": "redirected-fetch",
+      "category": "other",
+      "status": "loaded"
+    }
+  ],
+  "date": "Tue, 29 Sep 2026 06:19:44 GMT"
+}
