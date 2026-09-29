@@ -21,12 +21,12 @@
   <table>
     <tr><th>Critério</th><th>Peso</th><th>Teto</th><th>Justificativa</th></tr>
     <tr><td>Domínio de terceiro conectado</td><td>-2 / domínio</td><td>-30</td><td>Cada nova conexão amplia a superfície de coleta de dados, mas por si só não é maliciosa (ex.: CDNs).</td></tr>
-    <tr><td>Cookie de terceiro persistente</td><td>-1 / cookie</td><td>-20</td><td>Permite reidentificação entre sessões.</td></tr>
-    <tr><td>Cookie de terceiro de sessão</td><td>-0,5 / cookie</td><td>-10</td><td>Risco menor por expirar com a sessão.</td></tr>
-    <tr><td>Candidato a cookie sync</td><td>-5 / caso</td><td>-20</td><td>Sincronização de identificadores entre rastreadores é uma técnica deliberada de union de perfis.</td></tr>
+    <tr><td>Cookie de terceiro persistente definido no carregamento</td><td>-1 / cookie</td><td>-20</td><td>Permite reidentificação entre sessões; a medição não é contaminada por cookies antigos do perfil.</td></tr>
+    <tr><td>Cookie de terceiro de sessão definido no carregamento</td><td>-0,5 / cookie</td><td>-10</td><td>Risco menor por expirar com a sessão.</td></tr>
+    <tr><td>Candidato a cookie sync</td><td>-5 / caso</td><td>-20</td><td>Sincronização de identificadores entre rastreadores é uma técnica deliberada de união de perfis.</td></tr>
     <tr><td>Chamada de canvas fingerprinting</td><td>-8 / chamada</td><td>-24</td><td>Técnica de identificação persistente mesmo sem cookies; peso alto por ser difícil de burlar pelo usuário.</td></tr>
     <tr><td>Indicador de hijacking/hook</td><td>-6 / indicador</td><td>-24</td><td>Potencial comprometimento ativo do navegador, risco mais grave que mera coleta passiva.</td></tr>
-    <tr><td>Redirecionamento cross-site (bounce tracking)</td><td>-3 / caso</td><td>-15</td><td>Usado para contornar bloqueio de cookies de terceiro.</td></tr>
+    <tr><td>Redirecionamento cross-site da navegação principal</td><td>-3 / caso</td><td>-15</td><td>Heurística de bounce tracking; redirecionamentos de imagens e scripts não entram na contagem.</td></tr>
   </table>
 
   <h2>Faixas de classificação</h2>
@@ -41,7 +41,8 @@
   <ul>
     <li>eTLD+1 calculado com lista compacta de sufixos, não a Public Suffix List completa — validar manualmente domínios divergentes.</li>
     <li>Cookie sync é heurístico (token ≥16 chars repetido entre domínios distintos) — pode haver falsos positivos com IDs de sessão legítimos compartilhados via CDN.</li>
-    <li>Detecção de hijacking via diff de globais do <code>window</code> gera falsos positivos com extensões de terceiros instaladas no mesmo navegador — recomenda-se testar em perfil limpo do Firefox.</li>
+    <li>O diff de globais do <code>window</code> indica alteração, não prova comprometimento. Aplicações legítimas também podem criar globais; recomenda-se testar em perfil limpo e conferir a URL observada.</li>
+    <li>WebSocket só é indicado quando permanece aberto por mais de 10 segundos e aponta para outro domínio registrável.</li>
   </ul>
 </body>
 </html>
