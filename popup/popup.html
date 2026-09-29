@@ -6,9 +6,24 @@
 <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <header><h1>Privacy Guard</h1></header>
+  <header>
+    <h1>Privacy Guard</h1>
+    <div id="score-badge" class="score-badge">--</div>
+  </header>
+
   <div id="page-domain" class="page-domain">carregando…</div>
+
   <section id="sections"></section>
+
+  <section class="blocklist">
+    <h2>Bloqueio personalizado</h2>
+    <div class="blocklist-add">
+      <input id="blocklist-input" type="text" placeholder="ex: doubleclick.net">
+      <button id="blocklist-add-btn">Bloquear</button>
+    </div>
+    <ul id="blocklist-items"></ul>
+  </section>
+
   <script src="popup.js"></script>
 </body>
 </html>

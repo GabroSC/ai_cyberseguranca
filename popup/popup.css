@@ -1,6 +1,8 @@
 * { box-sizing: border-box; }
 body {
-  width: 340px;
+  width: 360px;
+  max-height: 560px;
+  overflow-y: auto;
   font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
   margin: 0;
   padding: 12px;
@@ -8,10 +10,49 @@ body {
   color: #e7e9ee;
   font-size: 13px;
 }
+header { display: flex; align-items: center; justify-content: space-between; }
 h1 { font-size: 15px; margin: 0; }
-.page-domain { color: #8890a0; margin: 8px 0 10px; word-break: break-all; }
-.card { background: #181c25; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+h2 { font-size: 13px; margin: 14px 0 6px; color: #a9b0c0; }
+.page-domain { color: #8890a0; margin: 4px 0 10px; word-break: break-all; }
+
+.score-badge {
+  font-weight: 700;
+  font-size: 16px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #2a2f3a;
+}
+.score-badge.low { background: #1e4d2b; color: #7ee2a0; }
+.score-badge.mid { background: #4d3f1e; color: #f0c869; }
+.score-badge.high { background: #4d1e1e; color: #f08e8e; }
+
+.card {
+  background: #181c25;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
 .card h3 { margin: 0 0 6px; font-size: 12.5px; color: #c4c9d4; }
+.card .count { font-size: 20px; font-weight: 700; }
 .card ul { margin: 6px 0 0; padding-left: 16px; max-height: 100px; overflow-y: auto; }
 .card li { margin-bottom: 2px; word-break: break-all; }
 .muted { color: #6b7280; }
+
+.blocklist { border-top: 1px solid #2a2f3a; padding-top: 8px; }
+.blocklist-add { display: flex; gap: 6px; margin-bottom: 8px; }
+.blocklist-add input {
+  flex: 1; padding: 6px 8px; border-radius: 6px; border: 1px solid #2a2f3a;
+  background: #0d0f14; color: #e7e9ee;
+}
+.blocklist-add button {
+  padding: 6px 10px; border-radius: 6px; border: none; background: #3b5bdb;
+  color: white; cursor: pointer;
+}
+#blocklist-items { list-style: none; padding: 0; margin: 0; }
+#blocklist-items li {
+  display: flex; justify-content: space-between; padding: 4px 0;
+  border-bottom: 1px solid #1e222b;
+}
+#blocklist-items button {
+  background: none; border: none; color: #f08e8e; cursor: pointer;
+}
